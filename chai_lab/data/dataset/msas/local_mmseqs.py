@@ -265,6 +265,8 @@ def mmseqs_search_pair(
     # fmt: on
 
 def main():
+    # a python wrapper for mmseqs2
+    # TODO: change argparse to function kwargs
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "query",
