@@ -13,6 +13,8 @@ For more information on the model's performance and capabilities, see our [techn
 ```shell
 git clone https://github.com/seoklab/chai-lab.git
 cd chai-lab
+conda env create -f environment.yaml
+conda activate chai_lab
 pip install -e .
 ```
 
