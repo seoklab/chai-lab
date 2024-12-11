@@ -182,5 +182,3 @@ def _run_mmseqs2(
         template_paths = template_paths_
 
     return (a3m_lines, template_paths) if use_templates else a3m_lines    
-
-def run_
