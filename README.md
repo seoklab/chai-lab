@@ -11,11 +11,8 @@ For more information on the model's performance and capabilities, see our [techn
 ## Installation
 
 ```shell
-# version on pypi:
-pip install chai_lab==0.5.1
-
-# newest available version (updates daily to test features that weren't released yet):
-pip install git+https://github.com/chaidiscovery/chai-lab.git
+git clone https://github.com/seoklab/chai-lab.git
+pip install -e .
 ```
 
 This Python package requires Linux, and a GPU with CUDA and bfloat16 support. We recommend using an A100 80GB or H100 80GB chip, but A10s and A30s should work for smaller complexes. Users have also reported success with consumer-grade RTX 4090.
