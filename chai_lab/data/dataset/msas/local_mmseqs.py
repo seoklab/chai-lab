@@ -11,8 +11,8 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 from typing import List, Union
 
-from colabfold.batch import get_queries, msa_to_str
-from colabfold.utils import safe_filename
+from chai_lab.data.dataset.msas.colabfold_codes.batch import get_queries, msa_to_str
+from chai_lab.data.dataset.msas.colabfold_codes.utils import safe_filename
 
 logger = logging.getLogger(__name__)
 
