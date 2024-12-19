@@ -400,12 +400,17 @@ def make_all_atom_feature_context(
         if cov_a.numel() > 0 and cov_b.numel() > 0:
             orig_a, orig_b = merged_context.atom_covalent_bond_indices
             if orig_a.numel() == orig_b.numel() == 0:
-                merged_context.atom_covalent_bond_indices = (orig_a, orig_b)
+                merged_context.atom_covalent_bond_indices = (cov_a, cov_b)
             else:
                 merged_context.atom_covalent_bond_indices = (
                     torch.concatenate([orig_a, cov_a]),
                     torch.concatenate([orig_b, cov_b]),
                 )
+            assert (
+                merged_context.atom_covalent_bond_indices[0].numel()
+                == merged_context.atom_covalent_bond_indices[1].numel()
+                > 0
+            )
     else:
         restraint_context = RestraintContext.empty()
 
@@ -897,9 +902,9 @@ def run_folding_on_context(
             bfactors=scaled_plddt_scores_per_atom,
             output_batch=inputs,
             write_path=cif_out_path,
-            entity_names={
-                c.entity_data.entity_id: c.entity_data.entity_name
-                for c in feature_context.chains
+            asym_entity_names={
+                i: c.entity_data.entity_name
+                for i, c in enumerate(feature_context.chains, start=1)
             },
         )
         cif_paths.append(cif_out_path)

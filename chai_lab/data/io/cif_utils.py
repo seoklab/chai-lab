@@ -72,11 +72,16 @@ def token_centre_plddts(
     return plddts[atom_idces].tolist(), residue_indices.tolist()
 
 
-def get_chains_metadata(context: PDBContext, entity_names) -> dict[int, AsymUnit]:
+def get_chains_metadata(
+    context: PDBContext, asymid2entity_name: dict[int, str]
+) -> dict[int, AsymUnit]:
+    """Return mapping from asym id to AsymUnit objects."""
+    assert context.asym_id2entity_type.keys() == asymid2entity_name.keys()
     # for each chain, get chain id, entity id, full sequence
     token_res_names = context.token_res_names_to_string
 
     asym_id2asym_unit = {}
+    entity_key2ihm_entity = {}
 
     for asym_id, entity_type in context.asym_id2entity_type.items():
         assert asym_id != 0, "zero is padding for asym_id"
@@ -92,37 +97,42 @@ def get_chains_metadata(context: PDBContext, entity_names) -> dict[int, AsymUnit
         any_token_in_resi = residue_indices.new_zeros([max_res + 1]) - 99
 
         any_token_in_resi[residue_indices] = torch.arange(
-            len(residue_indices),
-            dtype=residue_indices.dtype,
-            device=residue_indices.device,
+            len(residue_indices), dtype=any_token_in_resi.dtype
         )
 
         assert any_token_in_resi.min() >= 0
 
         sequence = [chain_token_res_names[i] for i in any_token_in_resi]
 
-        entity_id = context.token_entity_id[token_indices[0]]
+        if entity_type == EntityType.LIGAND.value:
+            entity_key = (entity_type, asym_id)  # each ligand = separate entity.
+        else:
+            entity_key = (entity_type, *sequence)
 
-        chain_id_str = _get_chain_letter(asym_id)
+        asym_entity_name = asymid2entity_name[asym_id]
+        if entity_key not in entity_key2ihm_entity:
+            entity_key2ihm_entity[entity_key] = Entity(
+                # sequence is a list of ChemComponents for aminoacids/bases
+                sequence=[
+                    _to_chem_component(resi, entity_type, asym_id) for resi in sequence
+                ],
+                # will be named same as first among replicas
+                description=f"Entity {asym_entity_name}",
+            )
 
         asym_id2asym_unit[asym_id] = AsymUnit(
-            entity=Entity(
-                # sequence is a list of ChemComponents for aminoacids/bases
-                sequence=[_to_chem_component(resi, entity_type) for resi in sequence],
-                description=entity_names[int(entity_id)],
-            ),
-            details=f"Chain {chain_id_str}",
-            id=chain_id_str,
+            entity=entity_key2ihm_entity[entity_key],
+            details=f"Chain {asym_entity_name}",
+            id=asym_entity_name,
         )
 
     return asym_id2asym_unit
 
 
-def _to_chem_component(res_name_3: str, entity_type: int):
+def _to_chem_component(res_name_3: str, entity_type: int, asym_id: int):
     match entity_type:
         case EntityType.LIGAND.value:
-            code = res_name_3
-            return NonPolymerChemComp(res_name_3)
+            return NonPolymerChemComp(id=res_name_3 + str(asym_id))
         case EntityType.MANUAL_GLYCAN.value:
             return SaccharideChemComp(id=res_name_3, name=res_name_3)
         case EntityType.PROTEIN.value:
@@ -140,11 +150,12 @@ def _to_chem_component(res_name_3: str, entity_type: int):
             raise NotImplementedError(f"Cannot handle entity type: {entity_type}")
 
 
+@typecheck
 def save_to_cif(
     coords: Float[Tensor, "1 n_atoms 3"],
     output_batch: dict,
     write_path: Path,
-    entity_names: dict[int, str],
+    asym_entity_names: dict[int, str],
     bfactors: Float[Tensor, "1 n_atoms"] | None = None,
 ):
     write_path.parent.mkdir(parents=True, exist_ok=True)
@@ -153,7 +164,7 @@ def save_to_cif(
         coords=rearrange(coords, "1 n c -> n c", c=3).cpu(),
         plddts=None if bfactors is None else rearrange(bfactors, "1 n -> n").cpu(),
         context=pdb_context_from_batch(output_batch),
-        entity_names=entity_names,
+        asym_entity_names=asym_entity_names,
         out_path=write_path,
     )
     logger.info(f"saved cif file to {write_path}")
@@ -164,10 +175,12 @@ def new_context_to_cif_atoms(
     coords: Float[Tensor, "n_atoms 3"],
     plddts: Float[Tensor, "n_atoms"] | None,
     context: PDBContext,
-    entity_names: dict[int, str],
+    asym_entity_names: dict[int, str],
     out_path: Path,
 ):
-    asym_id2asym_unit = get_chains_metadata(context, entity_names=entity_names)
+    asym_id2asym_unit = get_chains_metadata(
+        context, asymid2entity_name=asym_entity_names
+    )
 
     atom_asym_id = context.token_asym_id[context.atom_token_index]
     # atom level attributes
