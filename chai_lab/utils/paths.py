@@ -13,16 +13,16 @@ from filelock import FileLock
 
 # use this path object to specify location
 # of anything within repository
-repo_root: Final[Path] = Path(__file__).parents[2].absolute()
+chai_home: Final[Path] = Path(os.environ.get("CHAI_HOME", "/home.galaxy4/share/chai-1"))
 
 # weights and helper data is downloaded to CHAI_DOWNLOADS_DIR if provided.
 # otherwise we use <repo>/downloads, which is gitignored by default
-downloads_path = repo_root.joinpath("downloads")
+downloads_path = chai_home.joinpath("downloads")
 downloads_path = Path(os.environ.get("CHAI_DOWNLOADS_DIR", downloads_path))
 
 
 # minimal sanity check in case we start moving things around
-assert repo_root.exists()
+assert chai_home.exists()
 
 
 def download_if_not_exists(http_url: str, path: Path):
