@@ -14,7 +14,7 @@ For more information on the model's performance and capabilities, see our [techn
 git clone https://github.com/seoklab/chai-lab.git
 cd chai-lab
 conda env create -f environment.yaml
-conda activate chai_lab
+conda activate chai-1
 pip install -e .
 ```
 
